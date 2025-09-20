@@ -1,0 +1,159 @@
+import random
+
+class Player:
+    def __init__(self, name="Player"):
+        self.name = name
+        self.hand = []
+        self.split_hand = []
+        self.money = 100
+        self.bet = 0
+        self.active = True
+        self.has_split = False
+
+    def reset_hand(self):
+        self.hand = []
+        self.split_hand = []
+        self.bet = 0
+        self.active = True
+        self.has_split = False
+
+    def add_card(self, card, split=False):
+        if split:
+            self.split_hand.append(card)
+        else:
+            self.hand.append(card)
+
+    def calculate_score(self, split=False):
+        h = self.split_hand if split else self.hand
+        score = 0
+        aces = 0
+        for c in h:
+            if c in ["J","Q","K"]:
+                score += 10
+            elif c=="A":
+                score += 11
+                aces +=1
+            else:
+                score += c
+        while score>21 and aces>0:
+            score -= 10
+            aces -= 1
+        return score
+
+    def is_blackjack(self, split=False):
+        h = self.split_hand if split else self.hand
+        return set(h) == set([10,"A"]) or set(h) == set(["J","A"]) or set(h)==set(["Q","A"]) or set(h)==set(["K","A"])
+
+class BlackjackGameAdvanced:
+    def __init__(self):
+        self.deck = []
+        self.players = []
+        self.dealer = Player("Dealer")
+
+    def init_deck(self):
+        self.deck = [2,3,4,5,6,7,8,9,10,"J","Q","K","A"]*4
+        random.shuffle(self.deck)
+
+    def add_player(self,name="Player"):
+        # ẩn luật nickname
+        forbidden_names = ["sigma","rizz","nigga","đẹp trai"]
+        egg_names = ["khải"]
+        for p in self.players:
+            if p.name.lower()==name.lower():
+                name += "_1"
+        p = Player(name)
+        self.players.append(p)
+        # xử lý egg: tăng tỉ lệ thắng nếu tên có "khải"
+        if any(k in name.lower() for k in egg_names):
+            p.egg_bonus = True
+        # xử lý banned: thua liên tục nếu tên cấm
+        if any(f in name.lower() for f in forbidden_names):
+            p.banned = True
+        return p
+
+    def deal_initial(self):
+        self.init_deck()
+        self.dealer.reset_hand()
+        for p in self.players:
+            p.reset_hand()
+            p.add_card(self.deck.pop())
+            p.add_card(self.deck.pop())
+        self.dealer.add_card(self.deck.pop())
+        self.dealer.add_card(self.deck.pop())
+        return self.get_state()
+
+    def get_state(self):
+        return {
+            "dealer": [self.dealer.hand[0], "?"],
+            "players": [{
+                "name": p.name,
+                "hand": p.hand,
+                "split_hand": p.split_hand,
+                "money": p.money,
+                "bet": p.bet,
+                "active": p.active,
+                "has_split": p.has_split
+            } for p in self.players]
+        }
+
+    def hit(self, player_name, split=False):
+        player = next((p for p in self.players if p.name==player_name), None)
+        if not player or not player.active:
+            return self.get_state()
+        player.add_card(self.deck.pop(), split)
+        score = player.calculate_score(split)
+        if score>21:
+            player.active=False
+        return self.get_state()
+
+    def stand(self, player_name, split=False):
+        player = next((p for p in self.players if p.name==player_name), None)
+        if not player:
+            return self.get_state()
+        player.active=False
+        # dealer chơi
+        while self.dealer.calculate_score()<17:
+            self.dealer.add_card(self.deck.pop())
+        return self.resolve_game()
+
+    def split(self, player_name):
+        player = next((p for p in self.players if p.name==player_name), None)
+        if not player or len(player.hand)!=2 or player.hand[0]!=player.hand[1]:
+            return self.get_state()
+        player.split_hand.append(player.hand.pop())
+        player.has_split=True
+        return self.get_state()
+
+    def resolve_game(self):
+        dealer_score=self.dealer.calculate_score()
+        results=[]
+        for p in self.players:
+            for hand_name, hand in [("hand",False),("split_hand",True)]:
+                if hand_name=="split_hand" and not p.has_split:
+                    continue
+                ps = p.calculate_score(hand)
+                # luật egg
+                if getattr(p,"banned",False):
+                    status="Lose"
+                    p.money-=p.bet
+                elif getattr(p,"egg_bonus",False):
+                    status="Win"
+                    p.money+=p.bet*2
+                elif ps>21 and dealer_score>21:
+                    status="Draw"
+                elif ps>21:
+                    status="Lose"
+                    p.money-=p.bet
+                elif dealer_score>21:
+                    status="Win"
+                    p.money+=p.bet
+                elif ps>dealer_score:
+                    status="Win"
+                    p.money+=p.bet
+                elif ps<dealer_score:
+                    status="Lose"
+                    p.money-=p.bet
+                else:
+                    status="Draw"
+                results.append({"name": p.name, "hand":hand, "score":ps,"money":p.money,"status":status})
+        return {"dealer":self.dealer.hand,"results":results}

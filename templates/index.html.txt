@@ -1,35 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Blackjack Online</title>
+  <title>Blackjack Online Advanced</title>
   <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <h1>Blackjack Online</h1>
-  <button onclick="deal()">Deal</button>
+  <h1>Blackjack Online Advanced</h1>
+  <input type="text" id="player_name" placeholder="Enter name">
+  <input type="number" id="bet_amount" placeholder="Bet amount" value="10">
+  <button onclick="join()">Join & Deal</button>
   <button onclick="hit()">Hit</button>
   <button onclick="stand()">Stand</button>
+  <button onclick="split()">Split</button>
 
   <pre id="output"></pre>
 
   <script>
     var socket = io();
+    var playerName = "";
 
-    function deal() {
-      socket.emit("deal", {});
+    function join(){
+      playerName = document.getElementById("player_name").value || "Player";
+      var bet = parseInt(document.getElementById("bet_amount").value) || 10;
+      socket.emit("join",{name:playerName, bet:bet});
     }
 
-    function hit() {
-      socket.emit("hit", {});
+    function hit(split=false){
+      socket.emit("hit",{name:playerName, split:split});
     }
 
-    function stand() {
-      socket.emit("stand", {});
+    function stand(split=false){
+      socket.emit("stand",{name:playerName, split:split});
     }
 
-    socket.on("game_state", function(data) {
-      document.getElementById("output").innerText = JSON.stringify(data, null, 2);
+    function split(){
+      socket.emit("split",{name:playerName});
+    }
+
+    socket.on("game_state", function(data){
+      document.getElementById("output").innerText = JSON.stringify(data,null,2);
     });
   </script>
 </body>
