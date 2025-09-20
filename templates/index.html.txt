@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Blackjack Online</title>
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h1>Blackjack Online</h1>
+  <button onclick="deal()">Deal</button>
+  <button onclick="hit()">Hit</button>
+  <button onclick="stand()">Stand</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    var socket = io();
+
+    function deal() {
+      socket.emit("deal", {});
+    }
+
+    function hit() {
+      socket.emit("hit", {});
+    }
+
+    function stand() {
+      socket.emit("stand", {});
+    }
+
+    socket.on("game_state", function(data) {
+      document.getElementById("output").innerText = JSON.stringify(data, null, 2);
+    });
+  </script>
+</body>
+</html>

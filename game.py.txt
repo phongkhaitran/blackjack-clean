@@ -1,0 +1,46 @@
+import random
+
+class BlackjackGame:
+    def __init__(self):
+        self.deck = []
+        self.player = []
+        self.dealer = []
+
+    def deal_card(self):
+        return self.deck.pop()
+
+    def calculate_score(self, hand):
+        score = sum(hand)
+        # A = 11, J/Q/K = 10
+        if 11 in hand and score > 21:
+            score -= 10
+        return score
+
+    def deal(self):
+        self.deck = [2,3,4,5,6,7,8,9,10,10,10,10,11]*4
+        random.shuffle(self.deck)
+        self.player = [self.deal_card(), self.deal_card()]
+        self.dealer = [self.deal_card(), self.deal_card()]
+        return {"player": self.player, "dealer": [self.dealer[0], "?"], "status": "Game started"}
+
+    def hit(self):
+        self.player.append(self.deal_card())
+        score = self.calculate_score(self.player)
+        if score > 21:
+            return {"player": self.player, "dealer": self.dealer, "status": "Player bust!"}
+        return {"player": self.player, "dealer": [self.dealer[0], "?"], "status": "Hit"}
+
+    def stand(self):
+        while self.calculate_score(self.dealer) < 17:
+            self.dealer.append(self.deal_card())
+        player_score = self.calculate_score(self.player)
+        dealer_score = self.calculate_score(self.dealer)
+
+        if dealer_score > 21 or player_score > dealer_score:
+            result = "Player wins!"
+        elif player_score < dealer_score:
+            result = "Dealer wins!"
+        else:
+            result = "Draw!"
+
+        return {"player": self.player, "dealer": self.dealer, "status": result}
